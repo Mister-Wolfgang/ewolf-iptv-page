@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authentification IPTV</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 480px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .title {
+            font-size: 28px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-toggle {
+            display: flex;
+            background: #f7fafc;
+            border-radius: 12px;
+            padding: 4px;
+            margin-bottom: 24px;
+        }
+
+        .toggle-option {
+            flex: 1;
+            padding: 12px 16px;
+            text-align: center;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .toggle-option.active {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            color: #667eea;
+        }
+
+        .toggle-option:not(.active) {
+            color: #718096;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
+        }
+
+        input[type="text"], input[type="url"], input[type="password"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.2s;
+            background: #fafafa;
+        }
+
+        input[type="text"]:focus, input[type="url"]:focus, input[type="password"]:focus {
+            outline: none;
+            border-color: #667eea;
+            background: white;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 8px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .error {
+            background: #fed7d7;
+            border: 1px solid #fc8181;
+            color: #c53030;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+        }
+
+        .success {
+            background: #c6f6d5;
+            border: 1px solid #68d391;
+            color: #276749;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 16px;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .form-section {
+            min-height: 200px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1 class="title">Authentification IPTV</h1>
+            <p class="subtitle">Configurez vos identifiants pour accéder aux chaînes</p>
+        </div>
+
+        <div class="form-toggle">
+            <div class="toggle-option active" onclick="showForm('m3u')">Playlist M3U</div>
+            <div class="toggle-option" onclick="showForm('xtream')">Xtream Codes</div>
+        </div>
+
+        <form id="authForm">
+            <div class="form-section">
+                <!-- Formulaire M3U -->
+                <div id="m3uForm" class="form-content">
+                    <div class="form-group">
+                        <label for="playlistName">Nom de la playlist</label>
+                        <input type="text" id="playlistName" name="playlistName" placeholder="Ma playlist IPTV" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="m3uUrl">URL de la playlist M3U</label>
+                        <input type="url" id="m3uUrl" name="m3uUrl" placeholder="https://example.com/playlist.m3u" required>
+                    </div>
+                </div>
+
+                <!-- Formulaire Xtream -->
+                <div id="xtreamForm" class="form-content hidden">
+                    <div class="form-group">
+                        <label for="host">Serveur</label>
+                        <input type="text" id="host" name="host" placeholder="http://example.com:8080" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="username">Nom d'utilisateur</label>
+                        <input type="text" id="username" name="username" placeholder="votre_username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">Mot de passe</label>
+                        <input type="password" id="password" name="password" placeholder="votre_mot_de_passe" required>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                Envoyer les identifiants
+            </button>
+        </form>
+
+        <div id="message"></div>
+    </div>
+
+    <script>
+        // Configuration Supabase
+        const supabaseUrl = 'https://ufogvyayfcunrbdtxyve.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmb2d2eWF5ZmN1bnJiZHR4eXZlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTY1MDkwMTgsImV4cCI6MjA3MjA4NTAxOH0.uh9pMgwtaWs0hgdUV7ScQrbgQkCZCYg5Kpq99AfipZY';
+        
+        const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
+
+        let currentForm = 'm3u';
+        let sessionId = null;
+
+        // Récupérer le sessionId depuis l'URL
+        function getSessionIdFromUrl() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('sessionId');
+        }
+
+        // Afficher/masquer les formulaires
+        function showForm(formType) {
+            currentForm = formType;
+            
+            // Mettre à jour les onglets
+            document.querySelectorAll('.toggle-option').forEach(option => {
+                option.classList.remove('active');
+            });
+            
+            // Trouver l'élément cliqué et l'activer
+            const targetElement = document.querySelector(`[onclick="showForm('${formType}')"]`);
+            if (targetElement) {
+                targetElement.classList.add('active');
+            }
+            
+            // Afficher/masquer les sections
+            document.getElementById('m3uForm').classList.toggle('hidden', formType !== 'm3u');
+            document.getElementById('xtreamForm').classList.toggle('hidden', formType !== 'xtream');
+            
+            // Réinitialiser les champs requis
+            updateRequiredFields();
+        }
+
+        function updateRequiredFields() {
+            // Désactiver les champs requis du formulaire caché
+            document.querySelectorAll('#m3uForm input').forEach(input => {
+                input.required = currentForm === 'm3u';
+            });
+            document.querySelectorAll('#xtreamForm input').forEach(input => {
+                input.required = currentForm === 'xtream';
+            });
+        }
+
+        // Afficher un message
+        function showMessage(message, type = 'error') {
+            const messageDiv = document.getElementById('message');
+            messageDiv.innerHTML = `<div class="${type}">${message}</div>`;
+            
+            if (type === 'success') {
+                setTimeout(() => {
+                    window.close();
+                }, 3000);
+            }
+        }
+
+        // Envoyer les données via Supabase Realtime
+        async function sendCredentials(credentials, credentialsType) {
+            if (!sessionId) {
+                throw new Error('Session ID manquant');
+            }
+
+            const channelName = `auth:session:${sessionId}`;
+            console.log('Sending to channel:', channelName);
+            console.log('Credentials:', credentials);
+            console.log('Type:', credentialsType);
+            
+            const channel = supabase.channel(channelName);
+            
+            // S'abonner d'abord au canal
+            await new Promise((resolve, reject) => {
+                channel.subscribe((status) => {
+                    console.log('Channel subscription status:', status);
+                    if (status === 'SUBSCRIBED') {
+                        resolve();
+                    } else if (status === 'CHANNEL_ERROR') {
+                        reject(new Error('Erreur de souscription au canal'));
+                    }
+                });
+            });
+            
+            // Envoyer les données
+            console.log('Sending broadcast...');
+            const result = await channel.send({
+                type: 'broadcast',
+                event: 'credentials',
+                payload: {
+                    type: 'credentials',
+                    sessionId: sessionId,
+                    credentials: credentials,
+                    credentialsType: credentialsType
+                }
+            });
+            
+            console.log('Broadcast result:', result);
+            
+            // Attendre un peu avant de se désabonner
+            setTimeout(async () => {
+                await channel.unsubscribe();
+            }, 1000);
+        }
+
+        // Gestionnaire de soumission du formulaire
+        document.getElementById('authForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Envoi en cours...';
+            
+            try {
+                let credentials;
+                
+                if (currentForm === 'm3u') {
+                    credentials = {
+                        playlistName: document.getElementById('playlistName').value.trim(),
+                        m3uUrl: document.getElementById('m3uUrl').value.trim()
+                    };
+                } else {
+                    credentials = {
+                        host: document.getElementById('host').value.trim(),
+                        username: document.getElementById('username').value.trim(),
+                        password: document.getElementById('password').value.trim()
+                    };
+                }
+                
+                await sendCredentials(credentials, currentForm);
+                
+                showMessage('✅ Identifiants envoyés avec succès ! Vous pouvez fermer cette page.', 'success');
+                
+            } catch (error) {
+                console.error('Erreur:', error);
+                showMessage(`❌ Erreur: ${error.message}`);
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Envoyer les identifiants';
+            }
+        });
+
+        // Initialisation
+        window.addEventListener('DOMContentLoaded', function() {
+            sessionId = getSessionIdFromUrl();
+            
+            if (!sessionId) {
+                showMessage('❌ Session ID manquant dans l\'URL. Veuillez scanner à nouveau le QR Code.');
+                document.getElementById('submitBtn').disabled = true;
+                return;
+            }
+            
+            console.log('Session ID:', sessionId);
+            updateRequiredFields();
+        });
+    </script>
+</body>
+</html>
